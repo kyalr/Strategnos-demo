@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strategnos Workspace Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-header">
+      <div class="brand-wrap">
+        <div class="brand-mark">◔</div>
+        <div class="brand-name">Strategnos</div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button" title="Language">🇺🇸</button>
+        <button class="icon-button" title="Notifications">🔔</button>
+        <div class="avatar avatar-light">KR</div>
+      </div>
+    </header>
+
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="#">Dashboard</a>
+      <a href="#">Devices</a>
+      <a href="#">Tickets</a>
+      <a href="#">Templates</a>
+      <a href="#">Business units</a>
+      <a class="active" href="#" id="myWorkspaceNav">My Workspace</a>
+      <a href="#">Form Management</a>
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-button" id="administrationNavButton">
+          Administration <span>⌄</span>
+        </button>
+
+        <div class="nav-dropdown-menu hidden" id="administrationMenu">
+          <button type="button" id="openWorkflowsPage">
+            Workflows
+          </button>
+        </div>
+      </div>
+      <a href="#">Demo UI Components</a>
+    </nav>
+
+    <main id="workspacePage">
+      <section class="page-heading">
+        <div>
+          <h1>My Workspace</h1>
+          <span class="divider"></span>
+          <span class="subtitle">Manage your workspace</span>
+        </div>
+        <button class="primary-button" id="newBusinessUnitBtn">+ Create new business unit</button>
+      </section>
+
+      <section class="workspace-layout">
+        <aside class="business-panel panel">
+          <div class="panel-tabs">
+            <button>Favourites</button>
+            <button class="active">All</button>
+          </div>
+
+          <div class="search-row side-search-row">
+            <button class="square-button" id="addCompanyBtn">+</button>
+            <div class="search-box">
+              <input id="companySearch" type="text" placeholder="Search business units" />
+              <span>⌕</span>
+            </div>
+          </div>
+
+          <div id="businessList" class="business-list"></div>
+        </aside>
+
+        <section class="board-panel panel">
+          <div class="board-title-row">
+            <h2 id="selectedCompanyTitle">Strategnos (Pty) LTD.</h2>
+          </div>
+
+          <div class="board-toolbar">
+            <div class="search-box board-search">
+              <input id="taskSearch" type="text" placeholder="Search tasks" />
+              <button id="taskSearchBtn">⌕</button>
+            </div>
+            <button class="filter-button" id="filterBtn">⚑ &nbsp; ADVANCED FILTERS <span>⌄</span></button>
+            <button class="toolbar-button" title="Calendar">▣</button>
+            <button class="toolbar-button" title="List">☷</button>
+            <button class="toolbar-button active" title="Board">▦</button>
+          </div>
+
+          <div class="board-container">
+            <div id="kanbanBoard" class="kanban-board"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+
+    <main id="workflowsPage" class="application-page hidden">
+      <section class="page-heading">
+        <div>
+          <h1>Workflow Configuration</h1>
+          <span class="divider"></span>
+          <span class="subtitle">Configure reusable task workflows</span>
+        </div>
+        <button class="primary-button" id="newWorkflowBtn">+ Create workflow</button>
+      </section>
+
+      <section class="workflow-page-layout">
+        <aside class="workflow-list-panel panel">
+          <div class="workflow-panel-heading">
+            <h2>Workflows</h2>
+          </div>
+
+          <div class="search-box workflow-search">
+            <input id="workflowSearch" type="text" placeholder="Search workflows" />
+            <span>⌕</span>
+          </div>
+
+          <div id="workflowTemplateList" class="workflow-template-list"></div>
+        </aside>
+
+        <section class="workflow-editor-panel panel">
+          <div id="workflowEmptyState" class="workflow-empty-state">
+            <h2>Select a workflow</h2>
+            <p>Select an existing workflow or create a new one.</p>
+          </div>
+
+          <form id="workflowEditorForm" class="workflow-editor hidden">
+            <input id="workflowTemplateId" type="hidden" />
+
+            <div class="workflow-editor-header">
+              <div class="workflow-title-row">
+
+                <div>
+                  <h2 id="workflowEditorTitle">Workflow Designer </h2>
+                  <p>Build the ordered process that tasks will follow.</p>
+                </div>
+              </div>
+
+              <label class="workflow-active-toggle">
+                <input id="workflowIsActive" type="checkbox" checked />
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span>Active</span>
+              </label>
+            </div>
+
+            <div class="workflow-details-grid">
+              <label>
+                Workflow name *
+                <input id="workflowName" type="text" required maxlength="100" placeholder="Enter workflow name" />
+              </label>
+              <label>
+                Description
+                <input id="workflowDescription" type="text" maxlength="200" placeholder="Enter a short description" />
+              </label>
+            </div>
+
+            <div class="workflow-stage-strip" id="workflowStageStrip"></div>
+
+            <section class="workflow-stage-editor">
+              <div class="workflow-stage-editor-header">
+                <div>
+                  <span class="eyebrow">CURRENT STAGE</span>
+                  <h3 id="workflowStageTitle">New</h3>
+                  <p id="workflowStageDescription">Configure the ordered subtasks required before this stage can advance.</p>
+                </div>
+                <span class="workflow-stage-count" id="workflowStageCount">0 subtasks</span>
+              </div>
+
+              <div id="workflowStatusConfiguration" class="workflow-status-configuration"></div>
+
+              <div class="workflow-future-sections">
+                <button type="button" class="future-section-row" disabled>
+                  <span class="future-section-icon">▤</span>
+                  <span><strong>Forms</strong><small>Link forms that must be completed during this stage</small></span>
+                  <span class="future-badge">Coming later</span>
+                </button>
+                <button type="button" class="future-section-row" disabled>
+                  <span class="future-section-icon">✓</span>
+                  <span><strong>Approvals</strong><small>Require approval before the task can advance</small></span>
+                  <span class="future-badge">Coming later</span>
+                </button>
+                <button type="button" class="future-section-row" disabled>
+                  <span class="future-section-icon">⚡</span>
+                  <span><strong>Automation</strong><small>Add notifications and automated actions</small></span>
+                  <span class="future-badge">Coming later</span>
+                </button>
+              </div>
+            </section>
+
+            <div class="workflow-editor-actions">
+              <button type="button" class="danger-button" id="deleteWorkflowBtn">Delete workflow</button>
+              <span class="modal-action-spacer"></span>
+              <button type="button" class="secondary-button" id="cancelWorkflowBtn">Cancel</button>
+              <button type="submit" class="primary-button">▣ Save workflow</button>
+            </div>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <footer>
+      <span>StrategnosCloud Standard | API: v2.2.0.0 | Client: v2.2.0.0 [20260612]</span>
+      <div class="footer-actions">
+        <button class="floating-add" id="newTaskBtn">+</button>
+        <button class="chat-button">•••</button>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="taskModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle">Create task</h3>
+        <button class="icon-button" data-close-modal>✕</button>
+      </div>
+      <form id="taskForm">
+        <label>
+          Task title
+          <input id="taskTitleInput" required maxlength="80" placeholder="Enter task title" />
+        </label>
+
+        <label>
+          Project group
+          <input id="taskGroupInput" required maxlength="80" placeholder="e.g. HR Process" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Status
+            <select id="taskStatusInput">
+              <option>New</option>
+              <option>Planning</option>
+              <option>In Progress</option>
+              <option>Complete</option>
+            </select>
+          </label>
+          <label>
+            Due date
+            <input id="taskDueInput" type="date" required />
+          </label>
+        </div>
+
+        <label>
+          Assignee initials
+          <input id="taskAssigneeInput" maxlength="3" value="AA" />
+        </label>
+
+        <label>
+          Subtasks (one per line)
+          <textarea id="taskSubtasksInput" rows="6" placeholder="Confirm requirements&#10;Prepare documents&#10;Obtain approval"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="secondary-button" data-close-modal>Cancel</button>
+          <button type="submit" class="primary-button">Save task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="folderWorkflowModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-folder-workflow></div>
+    <div class="modal-card folder-workflow-modal-card" role="dialog" aria-modal="true" aria-labelledby="folderWorkflowModalTitle">
+      <div class="modal-header">
+        <div>
+          <h3 id="folderWorkflowModalTitle">Assign workflow to parent folder</h3>
+          <p class="modal-subtitle">Tasks underneath this folder will inherit the selected workflow.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-folder-workflow>✕</button>
+      </div>
+
+      <form id="folderWorkflowForm" class="folder-workflow-form">
+        <input id="folderWorkflowGroupValue" type="hidden" />
+
+        <div class="folder-context-card">
+          <span class="folder-context-icon">▾</span>
+          <div>
+            <small>BUSINESS UNIT</small>
+            <strong id="folderWorkflowCompany"></strong>
+            <small>PARENT FOLDER</small>
+            <strong id="folderWorkflowGroup"></strong>
+          </div>
+        </div>
+
+        <label class="folder-workflow-field">
+          Workflow
+          <select id="folderWorkflowSelect"></select>
+        </label>
+
+        <div id="folderWorkflowPreview" class="folder-workflow-preview"></div>
+
+        <label class="folder-apply-existing">
+          <input id="applyWorkflowToExistingTasks" type="checkbox" checked />
+          <span>
+            <strong>Apply to existing tasks</strong>
+            <small>Replace the current checklist configuration on all tasks already inside this folder.</small>
+          </span>
+        </label>
+
+        <div class="folder-workflow-note">
+          New tasks created under this parent folder will inherit the workflow automatically.
+        </div>
+
+        <div class="modal-actions folder-workflow-actions">
+          <button type="button" class="secondary-button" data-close-folder-workflow>Cancel</button>
+          <button type="submit" class="primary-button">Link workflow</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="taskFlyout" class="task-flyout-shell hidden" aria-hidden="true">
+    <div class="flyout-backdrop" data-close-flyout></div>
+    <aside class="task-flyout" role="dialog" aria-modal="true" aria-labelledby="flyoutTaskTitle">
+      <header class="flyout-header">
+        <h3 id="flyoutTaskTitle">Task</h3>
+        <div class="flyout-header-actions">
+          <button class="icon-button" title="Menu">☰</button>
+          <button class="icon-button" title="Expand">↗</button>
+          <button class="icon-button" data-close-flyout title="Close">✕</button>
+        </div>
+      </header>
+
+      <div class="flyout-breadcrumb" id="flyoutBreadcrumb"></div>
+
+      <nav class="flyout-tabs" aria-label="Task sections">
+        <button class="flyout-tab active" data-flyout-tab="details">Details</button>
+        <button class="flyout-tab" data-flyout-tab="files">Files</button>
+        <button class="flyout-tab" data-flyout-tab="notes">Notes</button>
+        <button class="flyout-tab" data-flyout-tab="forms">Forms</button>
+        <button class="flyout-tab" data-flyout-tab="tags">Tags</button>
+        <button class="flyout-tab" data-flyout-tab="subtasks">Subtasks</button>
+      </nav>
+
+      <form id="flyoutTaskForm" class="flyout-content">
+        <input id="flyoutTaskId" type="hidden" />
+
+        <section class="flyout-panel active" data-flyout-panel="details">
+          <div class="flyout-form-grid one-column">
+            <label>Name <span class="required">*</span>
+              <input id="flyoutName" required maxlength="80" />
+            </label>
+          </div>
+
+          <div class="flyout-form-grid two-column">
+            <label>Assigned to
+              <input id="flyoutAssignee" maxlength="3" />
+            </label>
+            <label class="protected-row"><span>🔒 Set as protected</span><input id="flyoutProtected" type="checkbox" /></label>
+          </div>
+
+          <div class="assignee-preview"><span class="avatar" id="flyoutAvatar">AA</span></div>
+
+          <div class="flyout-form-grid two-column">
+            <label>Status <span class="required">*</span>
+              <select id="flyoutStatus">
+                <option value="New">New</option>
+                <option value="Planning">Planning</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Complete">Complete</option>
+              </select>
+            </label>
+            <label>Timezone <span class="required">*</span>
+              <select id="flyoutTimezone"><option>(UTC+02:00) Harare, Pretoria</option></select>
+            </label>
+          </div>
+
+          <div class="flyout-form-grid two-column">
+            <label>Start date <span class="required">*</span><input id="flyoutStartDate" type="date" /></label>
+            <label>End date <span class="required">*</span><input id="flyoutEndDate" type="date" /></label>
+          </div>
+
+          <div class="flyout-form-grid two-column">
+            <label>Start time <span class="required">*</span><input id="flyoutStartTime" type="time" value="00:30" /></label>
+            <label>End time <span class="required">*</span><input id="flyoutEndTime" type="time" value="01:00" /></label>
+          </div>
+
+          <div class="flyout-form-grid two-column">
+            <label>Folder code<input id="flyoutFolderCode" /></label>
+            <label>Task type <span class="required">*</span><select id="flyoutTaskType"><option>General</option><option>Project</option><option>Internal</option></select></label>
+          </div>
+
+          <div class="flyout-form-grid two-column">
+            <label class="inline-check"><input id="flyoutBillable" type="checkbox" /> Is billable</label>
+            <label>Travel distance<input id="flyoutTravelDistance" type="number" min="0" value="0" /></label>
+          </div>
+        </section>
+
+        <section class="flyout-panel" data-flyout-panel="subtasks">
+          <div class="subtask-intro">
+            <div>
+              <h4>Subtask workflow</h4>
+              <p>Configure the ordered checklist shown for each main task status. Type a subtask and press Enter to create a bubble. The task moves forward automatically when every item in its current status is completed.</p>
+            </div>
+            <span class="status-pill" id="flyoutCurrentStatus"></span>
+          </div>
+          <div id="flyoutStatusConfiguration" class="flyout-status-configuration"></div>
+        </section>
+
+        <section class="flyout-panel placeholder-panel" data-flyout-panel="files"><h4>Files</h4><p>File attachments are not included in this demo.</p></section>
+        <section class="flyout-panel placeholder-panel" data-flyout-panel="notes"><h4>Notes</h4><textarea rows="8" placeholder="Add task notes..."></textarea></section>
+        <section class="flyout-panel placeholder-panel" data-flyout-panel="forms"><h4>Forms</h4><p>Linked forms would be displayed here.</p></section>
+        <section class="flyout-panel placeholder-panel" data-flyout-panel="tags"><h4>Tags</h4><input placeholder="Add a tag" /></section>
+
+        <footer class="flyout-footer">
+          <button type="button" class="danger-button" id="deleteFlyoutTaskBtn">Delete task</button>
+          <span class="modal-action-spacer"></span>
+          <button type="button" class="secondary-button" data-close-flyout>Cancel</button>
+          <button type="submit" class="primary-button">▣ Update</button>
+        </footer>
+      </form>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
