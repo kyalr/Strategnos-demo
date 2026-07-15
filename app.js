@@ -1394,7 +1394,15 @@ document.getElementById("cancelWorkflowBtn").addEventListener("click", () => {
 
 administrationNavButton.addEventListener("click", event => {
   event.stopPropagation();
+
+  const isOpening =
+    administrationMenu.classList.contains("hidden");
+
   administrationMenu.classList.toggle("hidden");
+  administrationNavButton.classList.toggle(
+    "menu-open",
+    isOpening
+  );
 });
 
 openWorkflowsPageButton.addEventListener("click", showWorkflowsPage);
