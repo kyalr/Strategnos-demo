@@ -1,8 +1,39 @@
 const STATUSES = ["New", "Planning", "In Progress", "Complete"];
 const STORAGE_KEY = "strategnos-kanban-demo-v5";
+const DEMO_USERS = [
+  {
+    id: "user-kyle-robertson",
+    name: "Kyle Robertson",
+    email: "kyler@strategnos.com",
+    initials: "KR"
+  },
+  {
+    id: "user-kyle-damons",
+    name: "Kyle Damons",
+    email: "kyled@strategnos.com",
+    initials: "KD"
+  },
+  {
+    id: "user-john-meyer",
+    name: "John Meyer",
+    email: "johnm@strategnos.com",
+    initials: "JM"
+  },
+  {
+    id: "user-amanda-adams",
+    name: "Amanda Adams",
+    email: "amandaa@strategnos.com",
+    initials: "AA"
+  }
+];
 
 function makeSteps(titles = []) {
-  return titles.map(title => ({ id: crypto.randomUUID(), title, complete: false }));
+  return titles.map(title => ({
+    id: crypto.randomUUID(),
+    title,
+    complete: false,
+    assignedUserIds: []
+  }));
 }
 
 function makeWorkflow(newSteps = [], planningSteps = [], progressSteps = [], completeSteps = []) {
@@ -166,9 +197,20 @@ function loadState() {
     }
 
     loaded.workflowTemplates.forEach(template => {
-      if (!template.workflow) template.workflow = makeWorkflow();
+      if (!template.workflow) {
+        template.workflow = makeWorkflow();
+      }
+
       STATUSES.forEach(status => {
-        if (!Array.isArray(template.workflow[status])) template.workflow[status] = [];
+        if (!Array.isArray(template.workflow[status])) {
+          template.workflow[status] = [];
+        }
+
+        template.workflow[status].forEach(step => {
+          if (!Array.isArray(step.assignedUserIds)) {
+            step.assignedUserIds = [];
+          }
+        });
       });
     });
 
@@ -812,17 +854,216 @@ function renderWorkflowStageStrip(template) {
 }
 
 function workflowSubtaskRowMarkup(step, index) {
+  const assignedUsers = (step.assignedUserIds || [])
+    .map(userId => DEMO_USERS.find(user => user.id === userId))
+    .filter(Boolean);
+
   return `
-    <div class="workflow-subtask-row" data-workflow-subtask-id="${step.id}" draggable="true">
-      <button type="button" class="workflow-drag-handle" title="Drag to reorder">☰</button>
-      <span class="workflow-subtask-number">${index + 1}</span>
-      <span class="workflow-subtask-title">${escapeHtml(step.title)}</span>
-      <div class="workflow-subtask-actions">
-        <button type="button" data-workflow-chip-move="up" title="Move earlier">↑</button>
-        <button type="button" data-workflow-chip-move="down" title="Move later">↓</button>
-        <button type="button" data-workflow-chip-remove title="Remove subtask">×</button>
+    <div
+      class="workflow-subtask-wrapper"
+      data-workflow-subtask-wrapper="${step.id}"
+    >
+      <div
+        class="workflow-subtask-row"
+        data-workflow-subtask-id="${step.id}"
+        draggable="true"
+      >
+        <button
+          type="button"
+          class="workflow-drag-handle"
+          title="Drag to reorder"
+        >
+          ☰
+        </button>
+
+        <span class="workflow-subtask-number">
+          ${index + 1}
+        </span>
+
+        <div class="workflow-subtask-main">
+          <span class="workflow-subtask-title">
+            ${escapeHtml(step.title)}
+          </span>
+
+          <div class="workflow-assigned-users">
+            ${assignedUsers.map(user => `
+              <span
+                class="assigned-user-chip"
+                title="${escapeHtml(user.name)}"
+              >
+                <span class="assigned-user-avatar">
+                  ${escapeHtml(user.initials)}
+                </span>
+
+                <span>${escapeHtml(user.name)}</span>
+
+                <button
+                  type="button"
+                  data-remove-subtask-user="${user.id}"
+                  title="Remove ${escapeHtml(user.name)}"
+                >
+                  ×
+                </button>
+              </span>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="workflow-subtask-actions">
+          <button
+            type="button"
+            data-link-subtask-users
+            title="Link users"
+            class="subtask-user-button"
+          >
+            👤
+          </button>
+
+          <button
+            type="button"
+            title="Move earlier"
+            data-workflow-chip-move="up"
+          >
+            ↑
+          </button>
+
+          <button
+            type="button"
+            title="Move later"
+            data-workflow-chip-move="down"
+          >
+            ↓
+          </button>
+
+          <button
+            type="button"
+            data-workflow-chip-remove
+            title="Remove subtask"
+          >
+            ×
+          </button>
+        </div>
       </div>
-    </div>`;
+
+      <div class="subtask-user-picker hidden">
+        <div class="subtask-user-search">
+          <input
+            type="text"
+            placeholder="Search users by name or email"
+            data-subtask-user-search
+            autocomplete="off"
+          />
+
+          <span>⌕</span>
+        </div>
+
+        <div class="subtask-user-results"></div>
+      </div>
+    </div>
+  `;
+}
+
+function getSelectedWorkflowTemplate() {
+  return state.workflowTemplates.find(
+    template =>
+      template.id ===
+      document.getElementById("workflowTemplateId").value
+  );
+}
+
+function getWorkflowStepFromRow(row) {
+  const template = getSelectedWorkflowTemplate();
+
+  if (!template) {
+    return null;
+  }
+
+  const stepId = row.dataset.workflowSubtaskId;
+
+  return template.workflow[selectedWorkflowStage].find(
+    step => step.id === stepId
+  );
+}
+
+function renderSubtaskUserResults(wrapper, searchTerm = "") {
+  const row = wrapper.querySelector(".workflow-subtask-row");
+  const step = getWorkflowStepFromRow(row);
+
+  if (!step) {
+    return;
+  }
+
+  const results = wrapper.querySelector(
+    ".subtask-user-results"
+  );
+
+  const search = searchTerm.trim().toLowerCase();
+
+  const users = DEMO_USERS.filter(user => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(search) ||
+      user.email.toLowerCase().includes(search);
+
+    return matchesSearch;
+  });
+
+  results.innerHTML = users.length
+    ? users.map(user => {
+        const selected = (
+          step.assignedUserIds || []
+        ).includes(user.id);
+
+        return `
+          <button
+            type="button"
+            class="subtask-user-result ${
+              selected ? "selected" : ""
+            }"
+            data-select-subtask-user="${user.id}"
+          >
+            <span class="subtask-user-result-avatar">
+              ${escapeHtml(user.initials)}
+            </span>
+
+            <span class="subtask-user-result-details">
+              <strong>${escapeHtml(user.name)}</strong>
+              <small>${escapeHtml(user.email)}</small>
+            </span>
+
+            <span class="subtask-user-result-status">
+              ${selected ? "✓ Linked" : "Link"}
+            </span>
+          </button>
+        `;
+      }).join("")
+    : `
+      <div class="subtask-user-no-results">
+        No users found.
+      </div>
+    `;
+}
+
+function closeAllSubtaskUserPickers(exceptWrapper = null) {
+  document
+    .querySelectorAll(".workflow-subtask-wrapper")
+    .forEach(wrapper => {
+      if (wrapper !== exceptWrapper) {
+        wrapper
+          .querySelector(".subtask-user-picker")
+          ?.classList.add("hidden");
+      }
+    });
+}
+
+function refreshWorkflowDesignerAfterUserChange() {
+  const template = getSelectedWorkflowTemplate();
+
+  if (!template) {
+    return;
+  }
+
+  saveState();
+  renderWorkflowDesigner(template);
 }
 
 function refreshWorkflowRowOrder(list) {
@@ -953,6 +1194,103 @@ workflowStatusConfiguration.addEventListener("click", event => {
     addWorkflowSubtaskChip(addButton.dataset.addWorkflowSubtask);
     return;
   }
+
+  const userLinkButton = event.target.closest(
+    "[data-link-subtask-users]"
+  );
+
+if (userLinkButton) {
+  const wrapper = userLinkButton.closest(
+    ".workflow-subtask-wrapper"
+  );
+
+  const picker = wrapper.querySelector(
+    ".subtask-user-picker"
+  );
+
+  const isOpening = picker.classList.contains("hidden");
+
+  closeAllSubtaskUserPickers(wrapper);
+
+  picker.classList.toggle("hidden", !isOpening);
+
+  if (isOpening) {
+    const searchInput = picker.querySelector(
+      "[data-subtask-user-search]"
+    );
+
+    searchInput.value = "";
+    renderSubtaskUserResults(wrapper);
+    searchInput.focus();
+  }
+
+  return;
+}
+
+const selectUserButton = event.target.closest(
+  "[data-select-subtask-user]"
+);
+
+if (selectUserButton) {
+  const wrapper = selectUserButton.closest(
+    ".workflow-subtask-wrapper"
+  );
+
+  const row = wrapper.querySelector(
+    ".workflow-subtask-row"
+  );
+
+  const step = getWorkflowStepFromRow(row);
+
+  if (!step) {
+    return;
+  }
+
+  const userId =
+    selectUserButton.dataset.selectSubtaskUser;
+
+  if (!Array.isArray(step.assignedUserIds)) {
+    step.assignedUserIds = [];
+  }
+
+  if (step.assignedUserIds.includes(userId)) {
+    step.assignedUserIds =
+      step.assignedUserIds.filter(
+        existingId => existingId !== userId
+      );
+  } else {
+    step.assignedUserIds.push(userId);
+  }
+
+  refreshWorkflowDesignerAfterUserChange();
+  return;
+}
+
+const removeUserButton = event.target.closest(
+  "[data-remove-subtask-user]"
+);
+
+if (removeUserButton) {
+  const row = removeUserButton.closest(
+    ".workflow-subtask-row"
+  );
+
+  const step = getWorkflowStepFromRow(row);
+
+  if (!step) {
+    return;
+  }
+
+  const userId =
+    removeUserButton.dataset.removeSubtaskUser;
+
+  step.assignedUserIds = (
+    step.assignedUserIds || []
+  ).filter(existingId => existingId !== userId);
+
+  refreshWorkflowDesignerAfterUserChange();
+  return;
+}
 
   const row = event.target.closest(".workflow-subtask-row");
   if (!row) return;
