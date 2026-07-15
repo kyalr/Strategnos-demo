@@ -143,6 +143,12 @@
                 <input id="workflowIsActive" type="checkbox" checked />
                 <span class="toggle-track"><span class="toggle-thumb"></span></span>
                 <span>Active</span>
+                <button
+                    id="linkWorkflowBtn"
+                    type="button"
+                    class="secondary-button">
+                    🔗 Link
+                </button>
               </label>
             </div>
 
@@ -155,6 +161,7 @@
                 Description
                 <input id="workflowDescription" type="text" maxlength="200" placeholder="Enter a short description" />
               </label>
+        
             </div>
 
             <div class="workflow-stage-strip" id="workflowStageStrip"></div>
@@ -172,21 +179,7 @@
               <div id="workflowStatusConfiguration" class="workflow-status-configuration"></div>
 
               <div class="workflow-future-sections">
-                <button type="button" class="future-section-row" disabled>
-                  <span class="future-section-icon">▤</span>
-                  <span><strong>Forms</strong><small>Link forms that must be completed during this stage</small></span>
-                  <span class="future-badge">Coming later</span>
-                </button>
-                <button type="button" class="future-section-row" disabled>
-                  <span class="future-section-icon">✓</span>
-                  <span><strong>Approvals</strong><small>Require approval before the task can advance</small></span>
-                  <span class="future-badge">Coming later</span>
-                </button>
-                <button type="button" class="future-section-row" disabled>
-                  <span class="future-section-icon">⚡</span>
-                  <span><strong>Automation</strong><small>Add notifications and automated actions</small></span>
-                  <span class="future-badge">Coming later</span>
-                </button>
+
               </div>
             </section>
 
@@ -417,6 +410,63 @@
       </form>
     </aside>
   </div>
+
+
+  <div id="workflowLinkModal" class="modal hidden">
+
+    <div class="modal-backdrop"></div>
+
+    <div class="modal-dialog hierarchy-dialog">
+
+        <div class="modal-header">
+            <h2>Select folders to link this workflow to</h2>
+
+            <button
+                id="closeWorkflowLinkModal"
+                class="icon-button">
+                ✕
+            </button>
+        </div>
+
+        <div class="modal-body">
+
+            <label class="checkbox-row">
+                <input
+                    id="inheritChildren"
+                    type="checkbox">
+
+                Link to child folders
+            </label>
+
+            <input
+                id="hierarchySearch"
+                placeholder="Search folders..." />
+
+            <div id="workflowHierarchyTree"></div>
+
+        </div>
+
+        <div class="modal-footer">
+
+            <button
+                class="secondary-button"
+                id="cancelWorkflowLink">
+
+                Cancel
+            </button>
+
+            <button
+                class="primary-button"
+                id="saveWorkflowLinks">
+
+                Link selected folders
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
   <script src="app.js"></script>
 </body>

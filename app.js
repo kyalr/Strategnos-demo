@@ -1076,4 +1076,113 @@ document.getElementById("myWorkspaceNav").addEventListener("click", event => {
   showWorkspacePage();
 });
 
+const linkBtn = document.getElementById("linkWorkflowBtn");
+const modal = document.getElementById("workflowLinkModal");
+
+linkBtn.addEventListener("click", () => {
+
+    buildHierarchyTree();
+
+    modal.classList.remove("hidden");
+
+});
+
+document
+.getElementById("closeWorkflowLinkModal")
+.onclick = () => {
+
+    modal.classList.add("hidden");
+
+};
+
+document
+.getElementById("cancelWorkflowLink")
+.onclick = () => {
+
+    modal.classList.add("hidden");
+
+};
+
+function buildHierarchyTree() {
+  const tree = document.getElementById("workflowHierarchyTree");
+
+  if (!tree) {
+    console.error("workflowHierarchyTree element was not found.");
+    return;
+  }
+
+  tree.innerHTML = "";
+
+  const companies = Array.isArray(state.companies)
+    ? state.companies
+    : [];
+
+  companies.forEach(company => {
+    const companyTasks = state.tasks.filter(
+      task => task.company === company
+    );
+
+    const folders = [
+      ...new Set(companyTasks.map(task => task.group))
+    ];
+
+    const companyElement = document.createElement("div");
+    companyElement.className = "hierarchy-company";
+
+    companyElement.innerHTML = `
+      <div class="hierarchy-company-row">
+        <button
+          type="button"
+          class="hierarchy-expand-button"
+          aria-label="Expand ${escapeHtml(company)}"
+        >
+          +
+        </button>
+
+        <span class="hierarchy-company-icon">▦</span>
+
+        <strong>${escapeHtml(company)}</strong>
+      </div>
+
+      <div class="hierarchy-folder-list hidden">
+        ${
+          folders.length
+            ? folders.map(folder => `
+                <label class="hierarchy-folder-row">
+                  <input
+                    type="checkbox"
+                    value="${escapeHtml(company)}|||${escapeHtml(folder)}"
+                    data-company="${escapeHtml(company)}"
+                    data-folder="${escapeHtml(folder)}"
+                  />
+
+                  <span class="hierarchy-folder-icon">▣</span>
+                  <span>${escapeHtml(folder)}</span>
+                </label>
+              `).join("")
+            : `
+              <div class="hierarchy-no-folders">
+                No parent folders available
+              </div>
+            `
+        }
+      </div>
+    `;
+
+    const expandButton = companyElement.querySelector(
+      ".hierarchy-expand-button"
+    );
+
+    const folderList = companyElement.querySelector(
+      ".hierarchy-folder-list"
+    );
+
+    expandButton.addEventListener("click", () => {
+      const isHidden = folderList.classList.toggle("hidden");
+      expandButton.textContent = isHidden ? "+" : "−";
+    });
+
+    tree.appendChild(companyElement);
+  });
+}
 render();

@@ -701,6 +701,14 @@ body.flyout-open { overflow: hidden; }
   border-radius: 4px;
 }
 
+.workflow-details-grid button {
+  
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #ccd3e3;
+  border-radius: 4px;
+}
+
 .workflow-future-note {
   display: flex;
   flex-direction: column;
@@ -906,4 +914,186 @@ body.flyout-open { overflow: hidden; }
 @media (max-width: 700px) {
   .folder-workflow-preview-stages { grid-template-columns: 1fr 1fr; }
   .folder-context-card div { grid-template-columns: 1fr; }
+}
+
+/* Workflow hierarchy linking modal */
+
+#workflowLinkModal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+}
+
+#workflowLinkModal.hidden {
+  display: none;
+}
+
+#workflowLinkModal .modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(19, 25, 45, 0.55);
+}
+
+#workflowLinkModal .hierarchy-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 50px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  background: #ffffff;
+  border-radius: 7px;
+  box-shadow: 0 20px 55px rgba(14, 22, 48, 0.3);
+}
+
+#workflowLinkModal .modal-header {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid #e3e6ee;
+}
+
+#workflowLinkModal .modal-header h2 {
+  margin: 0;
+  color: #111936;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#workflowLinkModal .modal-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 0;
+}
+
+#workflowLinkModal .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #384158;
+  font-size: 11px;
+}
+
+#workflowLinkModal .checkbox-row input {
+  width: 17px;
+  height: 17px;
+}
+
+#hierarchySearch {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 38px 8px 10px;
+  border: 1px solid #cbd2e1;
+  border-radius: 5px;
+  outline: none;
+}
+
+#hierarchySearch:focus {
+  border-color: #c99c68;
+  box-shadow: 0 0 0 2px rgba(201, 156, 104, 0.12);
+}
+
+#workflowHierarchyTree {
+  height: 340px;
+  margin-top: 0;
+  overflow-y: auto;
+  border-top: 1px solid #e7eaf0;
+  background: #fafbfe;
+}
+
+.hierarchy-company {
+  border-bottom: 1px solid #edf0f5;
+}
+
+.hierarchy-company-row {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  color: #07158f;
+  font-size: 11px;
+}
+
+.hierarchy-company-row:hover {
+  background: #f0f2f8;
+}
+
+.hierarchy-expand-button {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #aeb6c6;
+  border-radius: 2px;
+  background: white;
+  color: #374057;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.hierarchy-company-icon {
+  color: #1930aa;
+}
+
+.hierarchy-folder-list {
+  padding: 3px 8px 7px 34px;
+  background: #ffffff;
+}
+
+.hierarchy-folder-list.hidden {
+  display: none;
+}
+
+.hierarchy-folder-row {
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  color: #253050;
+  font-size: 11px;
+}
+
+.hierarchy-folder-row:hover {
+  background: #f2f4fa;
+}
+
+.hierarchy-folder-row input {
+  width: 17px;
+  height: 17px;
+}
+
+.hierarchy-folder-icon {
+  color: #c89c68;
+}
+
+.hierarchy-no-folders {
+  padding: 8px;
+  color: #9299a9;
+  font-size: 10px;
+  font-style: italic;
+}
+
+#workflowLinkModal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 14px 18px;
+  border-top: 1px solid #e3e6ee;
+  background: white;
+}
+
+#workflowLinkModal .modal-footer button {
+  min-height: 36px;
 }
