@@ -2778,5 +2778,12 @@ workflowToggle.addEventListener("click", () => {
     String(workflowViewEnabled)
   );
 
+  document
+    .querySelector(".board-panel")
+    .classList.toggle(
+      "workflow-view-active",
+      workflowViewEnabled
+    );
+
   renderBoard();
 });
