@@ -282,6 +282,7 @@ let searchTerm = "";
 let companySearchTerm = "";
 let toastTimer;
 let workflowViewEnabled = false;
+let openBoardAssigneePicker = null;
 
 const businessList = document.getElementById("businessList");
 const selectedCompanyTitle = document.getElementById("selectedCompanyTitle");
@@ -553,9 +554,13 @@ function synchroniseTaskWithWorkflow(task, template) {
         type: "step",
         title: templateStep.title,
         complete: Boolean(existing?.complete),
-        assignedUserIds: [
-          ...(templateStep.assignedUserIds || [])
-        ]
+        assignedUserIds:
+          existing?.assignmentOverridden
+            ? [...(existing.assignedUserIds || [])]
+            : [...(templateStep.assignedUserIds || [])],
+
+        assignmentOverridden:
+          Boolean(existing?.assignmentOverridden)
       };
     });
   });
@@ -692,46 +697,219 @@ const groups = workflowViewEnabled
   bindTaskEvents();
 }
 
-function renderTaskChecklistStep(task, step, stepIndex) {
+function getAssignedBoardUsers(step) {
+  return (step.assignedUserIds || [])
+    .map(userId => DEMO_USERS.find(user => user.id === userId))
+    .filter(Boolean);
+}
+
+function boardAssigneeMarkup(task, parentStep, targetStep) {
+  const assignedUsers = getAssignedBoardUsers(targetStep);
+
+  const pickerKey = [
+    task.id,
+    parentStep.id,
+    targetStep.id
+  ].join("::");
+
+  const isOpen = openBoardAssigneePicker === pickerKey;
+
+  const visibleUsers = assignedUsers.slice(0, 3);
+  const remainingCount = assignedUsers.length - visibleUsers.length;
+
+  return `
+    <div class="board-step-assignee">
+      <button
+        type="button"
+        class="board-step-assignee-button ${
+          assignedUsers.length ? "assigned" : ""
+        }"
+        data-open-board-assignee
+        data-task-id="${task.id}"
+        data-step-id="${parentStep.id}"
+        data-target-step-id="${targetStep.id}"
+        title="${
+          assignedUsers.length
+            ? assignedUsers.map(user => user.name).join(", ")
+            : "Assign users"
+        }"
+      >
+        ${
+          assignedUsers.length
+            ? `
+              <span class="board-assignee-avatar-stack">
+                ${visibleUsers.map(user => `
+                  <span class="board-assignee-mini-avatar">
+                    ${escapeHtml(user.initials)}
+                  </span>
+                `).join("")}
+
+                ${
+                  remainingCount > 0
+                    ? `
+                      <span class="board-assignee-more">
+                        +${remainingCount}
+                      </span>
+                    `
+                    : ""
+                }
+              </span>
+            `
+            : `<span class="board-assignee-empty-icon">♟</span>`
+        }
+      </button>
+
+      ${
+        isOpen
+          ? `
+            <div
+              class="board-assignee-picker"
+              data-board-assignee-picker
+            >
+              <div class="board-assignee-picker-heading">
+                Assign users
+              </div>
+
+              ${DEMO_USERS.map(user => {
+                const selected = assignedUsers.some(
+                  assignedUser => assignedUser.id === user.id
+                );
+
+                return `
+                  <button
+                    type="button"
+                    class="board-assignee-option ${
+                      selected ? "selected" : ""
+                    }"
+                    data-toggle-board-assignee="${user.id}"
+                    data-task-id="${task.id}"
+                    data-step-id="${parentStep.id}"
+                    data-target-step-id="${targetStep.id}"
+                  >
+                    <span class="board-assignee-avatar">
+                      ${escapeHtml(user.initials)}
+                    </span>
+
+                    <span class="board-assignee-details">
+                      <strong>${escapeHtml(user.name)}</strong>
+                      <small>${escapeHtml(user.email)}</small>
+                    </span>
+
+                    <span class="board-assignee-status">
+                      ${selected ? "✓" : ""}
+                    </span>
+                  </button>
+                `;
+              }).join("")}
+
+              ${
+                assignedUsers.length
+                  ? `
+                    <button
+                      type="button"
+                      class="board-assignee-clear"
+                      data-clear-board-assignees
+                      data-task-id="${task.id}"
+                      data-step-id="${parentStep.id}"
+                      data-target-step-id="${targetStep.id}"
+                    >
+                      Remove all assignments
+                    </button>
+                  `
+                  : ""
+              }
+            </div>
+          `
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderTaskChecklistStep(
+  task,
+  step,
+  stepIndex
+) {
   const number = stepIndex + 1;
 
   if (step.type === "group") {
-    const groupComplete = isWorkflowStepComplete(step);
-    const modeLabel = step.completionMode === "any" ? "One required" : "All required";
+    const groupComplete =
+      isWorkflowStepComplete(step);
 
     return `
-      <div class="check-group ${groupComplete ? "done" : ""}">
-
-
+      <div class="check-group ${
+        groupComplete ? "done" : ""
+      }">
         <div class="check-group-children">
-          ${step.children.map((child, childIndex) => `
-            <label class="check-item check-child ${child.complete ? "done" : ""}">
-              <input
-                type="checkbox"
-                ${child.complete ? "checked" : ""}
-                data-task-id="${task.id}"
-                data-step-id="${step.id}"
-                data-child-step-id="${child.id}"
-              />
-              <span class="check-child-number">${number}.${childIndex + 1}</span>
-              <span>${escapeHtml(child.title)}</span>
-            </label>
-          `).join("")}
+          ${step.children.map(
+            (child, childIndex) => `
+              <div
+                class="check-item-row ${
+                  child.complete ? "done" : ""
+                }"
+              >
+                <label class="check-item check-child">
+                  <input
+                    type="checkbox"
+                    ${child.complete ? "checked" : ""}
+                    data-task-id="${task.id}"
+                    data-step-id="${step.id}"
+                    data-child-step-id="${child.id}"
+                  />
+
+                  <span class="check-child-number">
+                    ${number}.${childIndex + 1}
+                  </span>
+
+                  <span class="check-item-title">
+                    ${escapeHtml(child.title)}
+                  </span>
+                </label>
+
+                ${boardAssigneeMarkup(
+                  task,
+                  step,
+                  child
+                )}
+              </div>
+            `
+          ).join("")}
         </div>
-      </div>`;
+      </div>
+    `;
   }
 
   return `
-    <label class="check-item ${step.complete ? "done" : ""}">
-      <input
-        type="checkbox"
-        ${step.complete ? "checked" : ""}
-        data-task-id="${task.id}"
-        data-step-id="${step.id}"
-      />
-      <span class="check-step-number">${number}</span>
-      <span>${escapeHtml(step.title)}</span>
-    </label>`;
+    <div
+      class="check-item-row ${
+        step.complete ? "done" : ""
+      }"
+    >
+      <label class="check-item">
+        <input
+          type="checkbox"
+          ${step.complete ? "checked" : ""}
+          data-task-id="${task.id}"
+          data-step-id="${step.id}"
+        />
+
+        <span class="check-step-number">
+          ${number}
+        </span>
+
+        <span class="check-item-title">
+          ${escapeHtml(step.title)}
+        </span>
+      </label>
+
+      ${boardAssigneeMarkup(
+        task,
+        step,
+        step
+      )}
+    </div>
+  `;
 }
 
 function renderTaskCard(task) {
@@ -773,6 +951,219 @@ kanbanBoard.addEventListener("change", event => {
 
   handleStepToggle({ target: checkbox });
 });
+
+kanbanBoard.addEventListener("click", event => {
+  const openButton = event.target.closest(
+    "[data-open-board-assignee]"
+  );
+
+  if (openButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pickerKey = [
+      openButton.dataset.taskId,
+      openButton.dataset.stepId,
+      openButton.dataset.targetStepId
+    ].join("::");
+
+    openBoardAssigneePicker =
+      openBoardAssigneePicker === pickerKey
+        ? null
+        : pickerKey;
+
+    renderBoard();
+    return;
+  }
+
+const toggleButton = event.target.closest(
+  "[data-toggle-board-assignee]"
+);
+
+if (toggleButton) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  toggleBoardStepAssignee(
+    toggleButton.dataset.taskId,
+    toggleButton.dataset.stepId,
+    toggleButton.dataset.targetStepId,
+    toggleButton.dataset.toggleBoardAssignee
+  );
+
+  return;
+}
+
+  if (selectButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    updateBoardStepAssignee(
+      selectButton.dataset.taskId,
+      selectButton.dataset.stepId,
+      selectButton.dataset.targetStepId,
+      selectButton.dataset.selectBoardAssignee
+    );
+
+    return;
+  }
+
+const clearButton = event.target.closest(
+  "[data-clear-board-assignees]"
+);
+
+if (clearButton) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  clearBoardStepAssignees(
+    clearButton.dataset.taskId,
+    clearButton.dataset.stepId,
+    clearButton.dataset.targetStepId
+  );
+
+  return;
+}
+  if (clearButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    updateBoardStepAssignee(
+      clearButton.dataset.taskId,
+      clearButton.dataset.stepId,
+      clearButton.dataset.targetStepId,
+      null
+    );
+
+    return;
+  }
+
+});
+
+function getBoardTargetStep(
+  taskId,
+  parentStepId,
+  targetStepId
+) {
+  const task = state.tasks.find(item => item.id === taskId);
+
+  if (!task) {
+    return null;
+  }
+
+  const currentSteps = task.workflow?.[task.status] || [];
+
+  const parentStep = currentSteps.find(
+    step => step.id === parentStepId
+  );
+
+  if (!parentStep) {
+    return null;
+  }
+
+  if (
+    parentStep.type === "group" &&
+    targetStepId !== parentStep.id
+  ) {
+    const childStep = parentStep.children.find(
+      child => child.id === targetStepId
+    );
+
+    return childStep
+      ? { task, targetStep: childStep }
+      : null;
+  }
+
+  return {
+    task,
+    targetStep: parentStep
+  };
+}
+document.addEventListener("click", event => {
+  if (!openBoardAssigneePicker) {
+    return;
+  }
+
+  const clickedPicker = event.target.closest(
+    "[data-board-assignee-picker]"
+  );
+
+  const clickedToggle = event.target.closest(
+    "[data-open-board-assignee]"
+  );
+
+  if (clickedPicker || clickedToggle) {
+    return;
+  }
+
+  openBoardAssigneePicker = null;
+  renderBoard();
+});
+
+
+function toggleBoardStepAssignee(
+  taskId,
+  parentStepId,
+  targetStepId,
+  userId
+) {
+  const result = getBoardTargetStep(
+    taskId,
+    parentStepId,
+    targetStepId
+  );
+
+  if (!result) {
+    return;
+  }
+
+  const { targetStep } = result;
+
+  if (!Array.isArray(targetStep.assignedUserIds)) {
+    targetStep.assignedUserIds = [];
+  }
+
+  const alreadyAssigned =
+    targetStep.assignedUserIds.includes(userId);
+
+  targetStep.assignedUserIds = alreadyAssigned
+    ? targetStep.assignedUserIds.filter(
+        existingId => existingId !== userId
+      )
+    : [...targetStep.assignedUserIds, userId];
+
+  targetStep.assignmentOverridden = true;
+
+  saveState();
+
+  // Keep the picker open so multiple users can be selected.
+  renderBoard();
+}
+
+function clearBoardStepAssignees(
+  taskId,
+  parentStepId,
+  targetStepId
+) {
+  const result = getBoardTargetStep(
+    taskId,
+    parentStepId,
+    targetStepId
+  );
+
+  if (!result) {
+    return;
+  }
+
+  result.targetStep.assignedUserIds = [];
+  result.targetStep.assignmentOverridden = true;
+
+  openBoardAssigneePicker = null;
+
+  saveState();
+  renderBoard();
+  showToast("All assignments removed.");
+}
 
 function findTaskWorkflowStep(task, status, stepId, childStepId = null) {
   const steps = task.workflow?.[status] || [];
