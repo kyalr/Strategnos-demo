@@ -85,20 +85,3 @@ The task flyout now distinguishes between two subtask modes:
 - **Workflow-controlled subtasks:** inherited from the workflow linked to the task's parent folder. The Subtasks tab shows a lock, displays the workflow structure as read-only, and reflects normal steps, grouped steps and assigned users.
 
 When an administrator updates a workflow, tasks in linked parent folders are synchronised automatically while preserving completion values for matching steps.
-
-
-## Workflow checklist event fix
-
-Task-card checklist changes now use delegated events, so normal workflow steps and grouped branches remain interactive after each board re-render.
-
-
-## Workflow checkbox duplicate-ID fix
-
-Workflow synchronisation now guards against undefined source IDs and repairs duplicate task-step IDs. This fixes the issue where only the first checklist item in a workflow-controlled task could be selected.
-
-
-## Workflow checklist matching repair
-
-This build corrects workflow synchronisation so each normal step and each grouped
-branch receives a unique task-level ID. Existing linked tasks are repaired
-automatically when the page loads, without clearing browser storage.

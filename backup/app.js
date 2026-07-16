@@ -27,8 +27,6 @@ const DEMO_USERS = [
   }
 ];
 
-
-
 function makeSteps(titles = []) {
   return titles.map(title => ({
     id: crypto.randomUUID(),
@@ -281,7 +279,6 @@ let state = loadState();
 let searchTerm = "";
 let companySearchTerm = "";
 let toastTimer;
-let workflowViewEnabled = false;
 
 const businessList = document.getElementById("businessList");
 const selectedCompanyTitle = document.getElementById("selectedCompanyTitle");
@@ -390,14 +387,9 @@ function isTaskWorkflowControlled(task) {
 
 function findMatchingTaskStep(existingSteps, templateStep) {
   return existingSteps.find(existing => {
-    const templateSourceId =
-      templateStep.sourceStepId || templateStep.id;
-
-    const sameSource = Boolean(
-      existing.sourceStepId &&
-      templateSourceId &&
-      existing.sourceStepId === templateSourceId
-    );
+    const sameSource =
+      existing.sourceStepId === templateStep.id ||
+      existing.sourceStepId === templateStep.sourceStepId;
 
     const sameLegacyStep =
       existing.type === templateStep.type &&
@@ -408,17 +400,6 @@ function findMatchingTaskStep(existingSteps, templateStep) {
   });
 }
 
-function getUniqueWorkflowItemId(preferredId, usedIds) {
-  if (preferredId && !usedIds.has(preferredId)) {
-    usedIds.add(preferredId);
-    return preferredId;
-  }
-
-  const id = crypto.randomUUID();
-  usedIds.add(id);
-  return id;
-}
-
 function synchroniseTaskWithWorkflow(task, template) {
   ensureWorkflow(task);
   const updatedWorkflow = makeWorkflow();
@@ -427,39 +408,11 @@ function synchroniseTaskWithWorkflow(task, template) {
     const existingSteps = task.workflow[status] || [];
     const templateSteps = template.workflow[status] || [];
 
-    const usedOutputStepIds = new Set();
-    const matchedExistingStepIds = new Set();
-
     updatedWorkflow[status] = templateSteps.map(templateStep => {
-      const templateSourceId =
-        templateStep.sourceStepId || templateStep.id;
-
-      const existing = existingSteps.find(existingStep => {
-        if (matchedExistingStepIds.has(existingStep.id)) {
-          return false;
-        }
-
-        const sameSource = Boolean(
-          existingStep.sourceStepId &&
-          templateSourceId &&
-          existingStep.sourceStepId === templateSourceId
-        );
-
-        const sameLegacyStep =
-          existingStep.type === templateStep.type &&
-          String(existingStep.title || "")
-            .trim()
-            .toLowerCase() ===
-          String(templateStep.title || "")
-            .trim()
-            .toLowerCase();
-
-        return sameSource || sameLegacyStep;
-      });
-
-      if (existing?.id) {
-        matchedExistingStepIds.add(existing.id);
-      }
+      const existing = findMatchingTaskStep(
+        existingSteps,
+        templateStep
+      );
 
       if (templateStep.type === "group") {
         const existingChildren =
@@ -467,89 +420,45 @@ function synchroniseTaskWithWorkflow(task, template) {
             ? existing.children || []
             : [];
 
-        const usedOutputChildIds = new Set();
-        const matchedExistingChildIds = new Set();
-
         return {
-          id: getUniqueWorkflowItemId(
-            existing?.id,
-            usedOutputStepIds
-          ),
-          sourceStepId: templateSourceId,
+          id: existing?.id || crypto.randomUUID(),
+          sourceStepId: templateStep.id,
           type: "group",
           title: templateStep.title,
           completionMode:
             templateStep.completionMode === "any"
               ? "any"
               : "all",
+          children: templateStep.children.map(templateChild => {
+            const existingChild = existingChildren.find(child => {
+              const sameSource =
+                child.sourceStepId === templateChild.id ||
+                child.sourceStepId === templateChild.sourceStepId;
 
-          children: (templateStep.children || []).map(
-            templateChild => {
-              const templateChildSourceId =
-                templateChild.sourceStepId ||
-                templateChild.id;
+              const sameLegacyStep =
+                child.title.trim().toLowerCase() ===
+                  templateChild.title.trim().toLowerCase();
 
-              const existingChild =
-                existingChildren.find(child => {
-                  if (
-                    matchedExistingChildIds.has(child.id)
-                  ) {
-                    return false;
-                  }
+              return sameSource || sameLegacyStep;
+            });
 
-                  const sameSource = Boolean(
-                    child.sourceStepId &&
-                    templateChildSourceId &&
-                    child.sourceStepId ===
-                      templateChildSourceId
-                  );
-
-                  const sameLegacyStep =
-                    String(child.title || "")
-                      .trim()
-                      .toLowerCase() ===
-                    String(templateChild.title || "")
-                      .trim()
-                      .toLowerCase();
-
-                  return sameSource || sameLegacyStep;
-                });
-
-              if (existingChild?.id) {
-                matchedExistingChildIds.add(
-                  existingChild.id
-                );
-              }
-
-              return {
-                id: getUniqueWorkflowItemId(
-                  existingChild?.id,
-                  usedOutputChildIds
-                ),
-                sourceStepId: templateChildSourceId,
-                type: "step",
-                title: templateChild.title,
-                complete: Boolean(
-                  existingChild?.complete
-                ),
-                assignedUserIds: [
-                  ...(
-                    templateChild.assignedUserIds ||
-                    []
-                  )
-                ]
-              };
-            }
-          )
+            return {
+              id: existingChild?.id || crypto.randomUUID(),
+              sourceStepId: templateChild.id,
+              type: "step",
+              title: templateChild.title,
+              complete: Boolean(existingChild?.complete),
+              assignedUserIds: [
+                ...(templateChild.assignedUserIds || [])
+              ]
+            };
+          })
         };
       }
 
       return {
-        id: getUniqueWorkflowItemId(
-          existing?.id,
-          usedOutputStepIds
-        ),
-        sourceStepId: templateSourceId,
+        id: existing?.id || crypto.randomUUID(),
+        sourceStepId: templateStep.id,
         type: "step",
         title: templateStep.title,
         complete: Boolean(existing?.complete),
@@ -563,34 +472,6 @@ function synchroniseTaskWithWorkflow(task, template) {
   task.workflowTemplateId = template.id;
   task.workflow = updatedWorkflow;
   return task;
-}
-
-function repairLinkedWorkflowTasks() {
-  let repairedTaskCount = 0;
-
-  state.folderWorkflowAssignments.forEach(assignment => {
-    const template = getWorkflowTemplate(
-      assignment.workflowTemplateId
-    );
-
-    if (!template) {
-      return;
-    }
-
-    state.tasks
-      .filter(task =>
-        task.company === assignment.company &&
-        task.group === assignment.group
-      )
-      .forEach(task => {
-        synchroniseTaskWithWorkflow(task, template);
-        repairedTaskCount += 1;
-      });
-  });
-
-  if (repairedTaskCount > 0) {
-    saveState();
-  }
 }
 
 function synchroniseTasksLinkedToTemplate(templateId) {
@@ -652,20 +533,7 @@ function getVisibleTasks() {
 function renderBoard() {
   selectedCompanyTitle.textContent = state.selectedCompany;
   const tasks = getVisibleTasks();
-const allGroups = [
-  ...new Set(tasks.map(task => task.group))
-];
-
-const groups = workflowViewEnabled
-  ? allGroups.filter(group => {
-      return Boolean(
-        getFolderWorkflowAssignment(
-          state.selectedCompany,
-          group
-        )
-      );
-    })
-  : allGroups;
+  const groups = [...new Set(tasks.map(task => task.group))];
   const header = `<div class="status-header">${STATUSES.map(status => `<div class="status-title">${status}</div>`).join("")}</div>`;
   if (!groups.length) { kanbanBoard.innerHTML = header + `<div class="empty-column">No matching tasks found.</div>`; return; }
 
@@ -680,7 +548,7 @@ const groups = workflowViewEnabled
         <strong>${escapeHtml(group)}</strong>
         <span class="group-count">- ${groupTasks.length} item${groupTasks.length === 1 ? "" : "s"}</span>
         ${assignedTemplate ? `<span class="folder-workflow-badge" title="Inherited by tasks in this folder">↳ ${escapeHtml(assignedTemplate.name)}</span>` : ""}
-        
+        <button class="folder-menu-button" type="button" title="Configure parent folder" data-configure-folder="${escapeHtml(group)}">⋮</button>
       </div>
       <div class="group-grid">${STATUSES.map(status => {
         const statusTasks = groupTasks.filter(task => task.status === status);
@@ -697,7 +565,7 @@ function renderTaskChecklistStep(task, step, stepIndex) {
 
   if (step.type === "group") {
     const groupComplete = isWorkflowStepComplete(step);
-    const modeLabel = step.completionMode === "any" ? "One required" : "All required";
+    const modeLabel = step.completionMode === "any" ? "Any one required" : "All required";
 
     return `
       <div class="check-group ${groupComplete ? "done" : ""}">
@@ -754,79 +622,31 @@ function renderTaskCard(task) {
 }
 
 function bindTaskEvents() {
+  document.querySelectorAll('input[type="checkbox"][data-task-id]').forEach(input => input.addEventListener("change", handleStepToggle));
   document.querySelectorAll("[data-move-back]").forEach(button => button.addEventListener("click", () => moveTask(button.dataset.moveBack, -1)));
   document.querySelectorAll("[data-move-forward]").forEach(button => button.addEventListener("click", () => moveTask(button.dataset.moveForward, 1)));
   document.querySelectorAll("[data-configure-task]").forEach(button => button.addEventListener("click", () => openTaskFlyout(button.dataset.configureTask)));
   document.querySelectorAll("[data-configure-folder]").forEach(button => button.addEventListener("click", () => openFolderWorkflowModal(button.dataset.configureFolder)));
 }
 
-// Delegate checklist changes from the board. This remains reliable after
-// renderBoard() replaces task-card HTML, including grouped workflow branches.
-kanbanBoard.addEventListener("change", event => {
-  const checkbox = event.target.closest(
-    'input[type="checkbox"][data-task-id][data-step-id]'
-  );
-
-  if (!checkbox) {
-    return;
-  }
-
-  handleStepToggle({ target: checkbox });
-});
-
-function findTaskWorkflowStep(task, status, stepId, childStepId = null) {
-  const steps = task.workflow?.[status] || [];
-  const parentStep = steps.find(step => step.id === stepId);
-
-  if (!parentStep) return null;
-
-  if (childStepId && parentStep.type === "group") {
-    const childStep = (parentStep.children || []).find(
-      child => child.id === childStepId
-    );
-
-    return childStep
-      ? { parentStep, targetStep: childStep }
-      : null;
-  }
-
-  return { parentStep, targetStep: parentStep };
-}
-
 function handleStepToggle(event) {
-  const checkbox = event.target.closest(
-    'input[type="checkbox"][data-task-id][data-step-id]'
-  );
-
-  if (!checkbox) return;
-
-  const task = state.tasks.find(
-    item => item.id === checkbox.dataset.taskId
-  );
-
+  const task = state.tasks.find(item => item.id === event.target.dataset.taskId);
   if (!task) return;
 
-  ensureWorkflow(task);
+  const currentSteps = task.workflow[task.status] || [];
+  const step = currentSteps.find(item => item.id === event.target.dataset.stepId);
+  if (!step) return;
 
-  const match = findTaskWorkflowStep(
-    task,
-    task.status,
-    checkbox.dataset.stepId,
-    checkbox.dataset.childStepId || null
-  );
+  const childStepId = event.target.dataset.childStepId;
 
-  if (!match) {
-    console.warn("Could not find workflow step for checkbox", {
-      taskId: checkbox.dataset.taskId,
-      stepId: checkbox.dataset.stepId,
-      childStepId: checkbox.dataset.childStepId
-    });
-    return;
+  if (step.type === "group" && childStepId) {
+    const child = step.children.find(item => item.id === childStepId);
+    if (!child) return;
+    child.complete = event.target.checked;
+  } else if (step.type !== "group") {
+    step.complete = event.target.checked;
   }
 
-  match.targetStep.complete = checkbox.checked;
-
-  const currentSteps = task.workflow[task.status] || [];
   const allComplete =
     currentSteps.length > 0 &&
     currentSteps.every(isWorkflowStepComplete);
@@ -838,9 +658,7 @@ function handleStepToggle(event) {
     task.status = STATUSES[currentIndex + 1];
     saveState();
     renderBoard();
-    showToast(
-      `${task.title} moved from ${previousStatus} to ${task.status}.`
-    );
+    showToast(`${task.title} moved from ${previousStatus} to ${task.status}.`);
     return;
   }
 
@@ -978,7 +796,7 @@ function renderWorkflowControlledSubtasks(task, template) {
                   ? `<span class="current-status-badge">Current</span>`
                   : ""}
               </div>
-              <span class="workflow-readonly-lock" title="Managed by workflow"></span>
+              <span class="workflow-readonly-lock" title="Managed by workflow">🔒</span>
             </div>
 
             <div class="flyout-workflow-readonly-list">
@@ -995,6 +813,8 @@ function renderEditableTaskSubtasks(task) {
   const host = document.getElementById("flyoutStatusConfiguration");
 
   host.innerHTML = `
+
+
     <div class="ad-hoc-status-grid">
       ${STATUSES.map((status, index) => `
         <section class="flyout-status-card ${status === task.status ? "current" : ""}" data-status-card="${status}">
@@ -1021,7 +841,7 @@ function renderEditableTaskSubtasks(task) {
                 style="border-radius: 4px !important"
                 type="text"
                 data-subtask-entry="${status}"
-                placeholder="Subtask..."
+                placeholder="Subtask"
                 autocomplete="off"
               />
             </div>
@@ -1141,6 +961,7 @@ function openTaskFlyout(taskId) {
   );
 
   subtasksTab.classList.toggle(
+  
     Boolean(workflowControl)
   );
   subtasksTab.innerHTML = workflowControl
@@ -1987,9 +1808,9 @@ function renderWorkflowDesigner(template) {
       <div class="workflow-add-subtask">
         <span class="workflow-add-icon">＋</span>
         <input
-          type="text" style = "font-size: 10px;"
+          type="text"
           data-workflow-subtask-entry="${selectedWorkflowStage}"
-          placeholder="Subtask..."
+          placeholder="Type a subtask and press Enter"
           autocomplete="off"
         />
         <button
@@ -2613,7 +2434,6 @@ function buildHierarchyTree() {
     tree.appendChild(companyElement);
   });
 }
-repairLinkedWorkflowTasks();
 render();
 
 function renderWorkflowAdminResults(searchTerm = "") {
@@ -2760,23 +2580,4 @@ document.addEventListener("click", event => {
   if (!event.target.closest(".workflow-admin-picker")) {
     workflowAdminResults.classList.add("hidden");
   }
-});
-
-const workflowToggle =
-  document.getElementById("workflowViewToggle");
-
-workflowToggle.addEventListener("click", () => {
-  workflowViewEnabled = !workflowViewEnabled;
-
-  workflowToggle.classList.toggle(
-    "active",
-    workflowViewEnabled
-  );
-
-  workflowToggle.setAttribute(
-    "aria-pressed",
-    String(workflowViewEnabled)
-  );
-
-  renderBoard();
 });
