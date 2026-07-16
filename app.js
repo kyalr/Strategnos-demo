@@ -685,7 +685,7 @@ const groups = workflowViewEnabled
         <strong>${escapeHtml(group)}</strong>
         <span class="group-count">- ${groupTasks.length} item${groupTasks.length === 1 ? "" : "s"}</span>
         ${assignedTemplate ? `<span class="folder-workflow-badge" title="Inherited by tasks in this folder">↳ ${escapeHtml(assignedTemplate.name)}</span>` : ""}
-        
+        <button class="folder-menu-button" type="button" title="Configure parent folder" data-configure-folder="${escapeHtml(group)}">⋮</button>
       </div>
       <div class="group-grid">${STATUSES.map(status => {
         const statusTasks = groupTasks.filter(task => task.status === status);
