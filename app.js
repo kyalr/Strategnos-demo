@@ -1979,7 +1979,9 @@ function workflowSimpleStepMarkup(step, index) {
 
         <div class="workflow-subtask-actions">
           ${assignedUserAvatarsMarkup(step)}
+          <button type="button" data-link-subtask-forms title="Link users" class="subtask-user-button">🗐</button>
           <button type="button" data-link-subtask-users title="Link users" class="subtask-user-button">♟</button>
+
           <button type="button" data-workflow-chip-move="up" title="Move earlier">↑</button>
           <button type="button" data-workflow-chip-move="down" title="Move later">↓</button>
           <button type="button" data-workflow-chip-remove title="Remove subtask">×</button>
@@ -2667,6 +2669,24 @@ workflowStatusConfiguration.addEventListener("click", event => {
   const userLinkButton = event.target.closest("[data-link-subtask-users]");
   if (userLinkButton) {
     const wrapper = userLinkButton.closest(".workflow-subtask-wrapper");
+    const picker = wrapper.querySelector(".subtask-user-picker");
+    const isOpening = picker.classList.contains("hidden");
+
+    closeAllSubtaskUserPickers(wrapper);
+    picker.classList.toggle("hidden", !isOpening);
+
+    if (isOpening) {
+      const searchInput = picker.querySelector("[data-subtask-user-search]");
+      searchInput.value = "";
+      renderSubtaskUserResults(wrapper);
+      searchInput.focus();
+    }
+    return;
+  }
+
+  const formLinkButton = event.target.closest("[data-link-subtask-forms]");
+  if (formLinkButton) {
+    const wrapper = formLinkButton.closest(".workflow-subtask-wrapper");
     const picker = wrapper.querySelector(".subtask-user-picker");
     const isOpening = picker.classList.contains("hidden");
 

@@ -2196,10 +2196,17 @@ body.flyout-open { overflow: hidden; }
 }
 
 .board-panel.workflow-view-active .status-header {
-  background: #e7ebf7;
+
   border-top-color: #d3d9eb;
   border-bottom-color: #d3d9eb;
 }
+
+.board-panel.workflow-view-active .status-column {
+  background: #6062771c;
+  border-top-color: #d3d9eb;
+  border-bottom-color: #d3d9eb;
+}
+
 
 .board-panel.workflow-view-active .status-title {
   color: var(--navy);
